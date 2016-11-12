@@ -9,5 +9,24 @@ int main(int argc, char* argv[]) {
 	
 	Aes128 aes;
 	aes.encrypt(message, key, cipher);
+
+	cout<< "message : ";
+	for(int i = 0; i < 16; ++i) {
+		cout<<HEX(message[i])<<" ";
+	}
+
+	cout<<endl<<"cipher : ";
+	for(int i = 0; i < 16; ++i) {
+		cout<<HEX(cipher[i])<<" ";
+	}
+
+	aes.decrypt(cipher, key, cipher);
+
+	cout<<endl<<"decrypted message : ";
+	for(int i = 0; i < 16; ++i) {
+		cout<<HEX(cipher[i])<<" ";
+	}
+	cout<<endl;
+
 	return 0;
 }
