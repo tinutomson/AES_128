@@ -94,9 +94,11 @@ void Aes128::expand_key(uint8_t *key) {
 #endif
 
 	for(int i = 16; i < round_keys_size; i = i+4) {
+
 #if DEBUG_MODE_ON
 		cout<<"round "<<DEC(i/4)<< "\t";
 #endif
+
 		if((i/4) %4==0) {
 			round_keys[i] = sub_byte(round_keys[i-3]) ^ rcon(i/16);
 			round_keys[i+1] = sub_byte(round_keys[i-2]);
@@ -110,13 +112,17 @@ void Aes128::expand_key(uint8_t *key) {
 		}
 		for(int j = i; j < i+4; ++j) {
 			round_keys[j] ^= round_keys[j-16];
+
 #if DEBUG_MODE_ON
 			cout<<HEX(round_keys[j])<<" ";
 #endif
+
 		}
+
 #if DEBUG_MODE_ON
 		cout<<endl;
 #endif
+
 	}
 }
 
@@ -126,11 +132,14 @@ void Aes128::initialize_state(uint8_t *input) {
 			states[i][j] = input[i + 4*j];
 		}
 	}
+
 #if DEBUG_MODE_ON
 	print_states();
 #endif
+
 }
 
+#if DEBUG_MODE_ON
 void Aes128::print_states() {
 	for(int i = 0; i < 4; ++i) {
 		cout<<endl;
@@ -140,6 +149,7 @@ void Aes128::print_states() {
 	}
 	cout<<"\n\n";
 }
+#endif
 
 uint8_t Aes128::sub_byte(uint8_t state) {
 	return sbox[state];
@@ -155,10 +165,12 @@ void Aes128::substitute() {
 			states[i][j] = sub_byte(states[i][j]);
 		}
 	}
+
 #if DEBUG_MODE_ON
 	cout<<"substitute()";
 	print_states();
 #endif
+
 }
 
 void Aes128::shift_row() {
@@ -181,10 +193,12 @@ void Aes128::shift_row() {
 	states[3][3] = states[3][2];
 	states[3][2] = states[3][1];
 	states[3][1] = temp;
+
 #if DEBUG_MODE_ON
 	cout<<"shift_row()";
 	print_states();
 #endif
+
 }
 
 void Aes128::mix_column() {
@@ -200,10 +214,12 @@ void Aes128::mix_column() {
 		states[2][j] = temp_array[2];
 		states[3][j] = temp_array[3];
 	}
+
 #if DEBUG_MODE_ON
 	cout<<"mix_column()";
 	print_states();
 #endif
+
 }
 
 void Aes128::add_round_key(int round) {
@@ -212,10 +228,12 @@ void Aes128::add_round_key(int round) {
 			states[i][j] ^= round_keys[round*16 + (i + 4*j)];
 		}
 	}
+
 #if DEBUG_MODE_ON
 	cout<<"add_round_key()";
 	print_states();
 #endif
+
 }
 
 void Aes128::copy_output(uint8_t *output) {
@@ -252,10 +270,12 @@ void Aes128::invert_substitute() {
 			states[i][j] = invert_sub_byte(states[i][j]);
 		}
 	}
+
 #if DEBUG_MODE_ON
 	cout<<"invert_substitute()";
 	print_states();
 #endif
+
 }
 
 void Aes128::invert_shift_row() {
@@ -279,10 +299,12 @@ void Aes128::invert_shift_row() {
 	states[3][1] = states[3][2];
 	states[3][2] = states[3][3];
 	states[3][3] = temp;
+
 #if DEBUG_MODE_ON
 	cout<<"invert_shift_row()";
 	print_states();
 #endif
+
 }
 
 void Aes128::invert_mix_column() {
@@ -298,10 +320,12 @@ void Aes128::invert_mix_column() {
 		states[2][j] = temp_array[2];
 		states[3][j] = temp_array[3];
 	}
+
 #if DEBUG_MODE_ON
 	cout<<"invert_mix_column()";
 	print_states();
 #endif
+
 }
 
 void Aes128::decrypt(uint8_t *cipher, uint8_t *key, uint8_t *message) {

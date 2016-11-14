@@ -39,7 +39,10 @@ class Aes128 {
 	*/
 	void copy_next_sixteen_bytes(uint8_t *source, uint8_t * dest);
 	void copy_next_four_bytes(uint8_t *source, uint8_t * dest);
+
+#if DEBUG_MODE_ON
 	void print_states();
+#endif
 
 	/* Common functions
 	*/
