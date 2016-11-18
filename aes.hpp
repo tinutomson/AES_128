@@ -13,11 +13,11 @@ using namespace std;
 
 // 1 unit of size is 1 byte or 8 bit long
 #define block_size 16
-#define key_size 16
+//#define key_size 16
 
 #define state_size 4
-#define no_of_rounds 10
-#define round_keys_size 176
+//#define no_of_rounds 14
+//#define round_keys_size 240
 
 class Aes128 {
 
@@ -25,13 +25,13 @@ class Aes128 {
 	const static uint8_t sbox[256];
 	const static uint8_t invert_sbox[256];
 	const static uint8_t rcon_values[10];
-
+	int key_size,round_keys_size,no_of_rounds;
 	uint8_t states[state_size][state_size];
-	uint8_t round_keys[round_keys_size];
+	uint8_t *round_keys;
 
 	/* Table look up functions
 	*/
-	uint32_t rcon(int size);
+	uint8_t rcon(int size);
 	uint8_t sub_byte(uint8_t state);
 	uint8_t invert_sub_byte(uint8_t state);
 
@@ -47,6 +47,7 @@ class Aes128 {
 	/* Common functions
 	*/
 	void initialize_state(uint8_t *input);
+	void initialize_keyparam(int keysize,uint8_t *key);
 	uint8_t g_mult(uint8_t first, uint8_t second);
 	void expand_key(uint8_t *key);
 	void add_round_key(int round);
@@ -66,7 +67,7 @@ class Aes128 {
 
 	public:
 	Aes128();
-	void encrypt(uint8_t *message, uint8_t *key, uint8_t *cipher);
+	void encrypt(uint8_t *message, uint8_t *key, uint8_t *cipher,int keysize);
 	void decrypt(uint8_t *cipher, uint8_t *key, uint8_t *message);
 };
 

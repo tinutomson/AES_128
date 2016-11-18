@@ -1,7 +1,7 @@
 #include "aes.hpp"
 #include <cstring>
 #include <iostream>
-
+#include <stdlib.h>
 using namespace std;
 
 Aes128::Aes128() {
@@ -50,15 +50,32 @@ const uint8_t Aes128::invert_sbox[256] = {
 const uint8_t Aes128::rcon_values[10] = {0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36};
 
 void Aes128::copy_next_sixteen_bytes(uint8_t *source, uint8_t * dest) {
-	memcpy(dest, source, 16);
+	memcpy(dest, source, 32);
 }
 
 void Aes128::copy_next_four_bytes(uint8_t *source, uint8_t * dest) {
 	memcpy(dest, source, 4);
 }
 
-uint32_t Aes128::rcon(int index) {
-	return rcon_values[index - 1];
+uint8_t Aes128::rcon(int index) {
+ uint8_t toBe = 0x02;
+ if(index==1)
+  return 0x01;
+ if(index==2)
+  return 0x02;
+ for(int i=2;i<index;i++)
+ {
+  int high_bit =(uint8_t)(toBe&0x80);
+  if(high_bit==0)
+    toBe<<=1;
+  else
+  {
+    toBe<<=1;
+    toBe ^=0x1b;
+  }
+ }
+ return toBe;
+ //return rcon_values[index - 1];
 }
 
 uint8_t Aes128::g_mult(uint8_t first, uint8_t second) {
@@ -80,11 +97,11 @@ uint8_t Aes128::g_mult(uint8_t first, uint8_t second) {
 
 void Aes128::expand_key(uint8_t *key) {
 
-	copy_next_sixteen_bytes(key, round_keys);
+	//copy_next_sixteen_bytes(key, round_keys);
 
 #if DEBUG_MODE_ON
 	cout<<endl<<"key expansion"<<endl;
-	for(int j = 0; j < 16; j = j+4) {
+	for(int j = 0; j < key_size; j = j+4) {
 		cout<<"round "<<DEC(j/4)<< "\t";
 		cout<<HEX(round_keys[j])<<" ";
 		cout<<HEX(round_keys[j+1]) << " ";
@@ -93,25 +110,33 @@ void Aes128::expand_key(uint8_t *key) {
 	}
 #endif
 
-	for(int i = 16; i < round_keys_size; i = i+4) {
+	for(int i = key_size; i < round_keys_size; i = i+4) {
 
 #if DEBUG_MODE_ON
 		cout<<"round "<<DEC(i/4)<< "\t";
 #endif
 
-		if((i/4) %4==0) {
-			round_keys[i] = sub_byte(round_keys[i-3]) ^ rcon(i/16);
+		if((i/4) %(key_size/4)==0) {
+			round_keys[i] = sub_byte(round_keys[i-3]) ^ rcon(i/key_size);
 			round_keys[i+1] = sub_byte(round_keys[i-2]);
 			round_keys[i+2] = sub_byte(round_keys[i-1]);
 			round_keys[i+3] = sub_byte(round_keys[i-4]);
-		} else {
+		}
+		else if((key_size/4>6)&&(i/4) %(key_size/4)==4)
+		{
+			round_keys[i] = sub_byte(round_keys[i-4]);
+			round_keys[i+1] = sub_byte(round_keys[i-3]);
+			round_keys[i+2] = sub_byte(round_keys[i-2]);
+			round_keys[i+3] = sub_byte(round_keys[i-1]);
+		} 
+		else {
 			round_keys[i] = round_keys[i-4];
 			round_keys[i+1] = round_keys[i-3];
 			round_keys[i+2] = round_keys[i-2];
 			round_keys[i+3] = round_keys[i-1];
 		}
 		for(int j = i; j < i+4; ++j) {
-			round_keys[j] ^= round_keys[j-16];
+			round_keys[j] ^= round_keys[j-key_size];
 
 #if DEBUG_MODE_ON
 			cout<<HEX(round_keys[j])<<" ";
@@ -236,6 +261,34 @@ void Aes128::add_round_key(int round) {
 
 }
 
+void Aes128::initialize_keyparam(int keysize,uint8_t *key)
+{
+  if(keysize == 128)
+  {
+  	key_size = keysize/8;
+  	round_keys_size = 176;
+  	no_of_rounds = 10;
+  	round_keys = (uint8_t*)malloc(176);
+  	memcpy(round_keys,key,16);
+  }
+  else if(keysize == 192)
+  {
+  	key_size = keysize/8;
+  	round_keys_size = 208;
+  	no_of_rounds = 12;
+  	round_keys = (uint8_t*)malloc(208);
+  	memcpy(round_keys,key,24);
+  }
+  else
+  {
+  	key_size = keysize/8;
+  	round_keys_size = 240;
+  	no_of_rounds = 14;
+  	round_keys = (uint8_t*)malloc(240);
+  	memcpy(round_keys,key,32);
+  }
+}
+
 void Aes128::copy_output(uint8_t *output) {
 	for (int i = 0; i < 4; ++i) {
 		for (int j = 0; j < 4; ++j) {
@@ -244,14 +297,14 @@ void Aes128::copy_output(uint8_t *output) {
 	}
 }
 
-void Aes128::encrypt(uint8_t *message, uint8_t *key, uint8_t *cipher) {
-
+void Aes128::encrypt(uint8_t *message, uint8_t *key, uint8_t *cipher,int keysize) {
+    initialize_keyparam(keysize,key);
 	expand_key(key);
 	initialize_state(message);
 	add_round_key(0);
 
 	int round;
-	for(round = 1; round < 10; ++round) {
+	for(round = 1; round < no_of_rounds; ++round) {
 		substitute();
 		shift_row();
 		mix_column();
