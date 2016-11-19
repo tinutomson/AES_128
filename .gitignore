@@ -1,7 +1,7 @@
 .DS_Store
 
 #Output file
-AES_128
+AES
 
 #Cmake, Makefile generated file
 CMakeCache.txt

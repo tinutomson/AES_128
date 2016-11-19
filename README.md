@@ -1,6 +1,6 @@
-# AES_cpp
+# AES
 
-AES_cpp is an AES-128 implementation using C++ 11 implementation. 
+AES is an 128/192/256 bit key implementation of AES-Rijndael algorithm using C++ 11 implementation. 
 Prerequisites to build the project : compiler that supports C++11, Cmake >= 2.8
 In order to build the project use the following commands:
 
@@ -10,5 +10,5 @@ In order to build the project use the following commands:
 
 To run the application after building on a unix machine:
 
- `/.AES_128` 
+ `./AES` 
 

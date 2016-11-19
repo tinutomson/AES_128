@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 		cout<<HEX(cipher[i])<<" ";
 	}
 
-	aes.decrypt(cipher, key128, cipher);
+	aes.decrypt(cipher, key128, cipher, 128);
 
 	cout<<endl<<"decrypted message : ";
 	for(int i = 0; i < 16; ++i) {
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 		cout<<HEX(cipher[i])<<" ";
 	}
 
-	aes.decrypt(cipher, key192, cipher);
+	aes.decrypt(cipher, key192, cipher, 192);
 
 	cout<<endl<<"decrypted message : ";
 	for(int i = 0; i < 16; ++i) {
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
 		cout<<HEX(cipher[i])<<" ";
 	}
 
-	aes.decrypt(cipher, key256, cipher);
+	aes.decrypt(cipher, key256, cipher, 256);
 
 	cout<<endl<<"decrypted message : ";
 	for(int i = 0; i < 16; ++i) {
