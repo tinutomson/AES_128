@@ -7,6 +7,7 @@
 
 using namespace std;
 
+#define VERSION "v0.1"
 #define DEBUG_MODE_ON 0
 #define HEX( x ) hex<<setfill('0')<<setw(2)<< int(x)
 #define DEC( x ) dec<<setw(2)<<int(x)
