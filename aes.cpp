@@ -119,7 +119,7 @@ void Aes128::initialize_keyparam(uint8_t *key, int keysize) {
 void Aes128::clean_states() {
 	memset(states, 0 , state_size*state_size);
 	memset(round_keys, 0, key_size);
-	free(round_keys);
+	delete[]  round_keys;
 	round_keys = 0;
 	key_size = 0;
 	no_of_rounds = 0;

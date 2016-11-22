@@ -104,29 +104,121 @@ bool is_file_valid(char *file_name) {
 
 bool get_key_size(char* key_s, int *size) {
 	if(!key_s) {
-		*size = 128;
+		*size = 16;
 		return true;
 	}
 
 	if(strcmp(key_s, "128") == 0) {
-		*size = 128;
+		*size = 16;
 	} else if(strcmp(key_s, "192") == 0) {
-		*size = 192;
+		*size = 24;
 	} else if(strcmp(key_s, "256") == 0) {
-		*size = 256;
+		*size = 32;
 	} else {
 		return false;
 	}
 	return true;
 }
 
-bool read_input(char *file_name, uint8_t *in_buf, unsigned int *in_buf_size) {
-	// TODO: Find size of file, create a buf of enough length of multiple of 128, copy convert store
+bool parse_stream(ifstream &stream, uint8_t *in_buf, int *in_buf_size) {
+	char c;
+	bool high_bit = true;
+	int max_no_byte = *in_buf_size;
+    *in_buf_size = 0;
+    while(stream.get(c) && max_no_byte > 0) {
+    	if(c == '\n' || isspace(c) || c == '\r') {
+    		continue;
+    	} else if(c >= '0' && c <= '9') {
+    		if(high_bit) {
+    			in_buf[*in_buf_size] = (uint8_t) (c - '0') << 4;
+    		} else {
+    			in_buf[*in_buf_size] ^=  (uint8_t) (c - '0');
+				(*in_buf_size)++;
+				max_no_byte--;
+			}
+		} else if(c >= 'A' && c <= 'F') {
+			if(high_bit) {
+    			in_buf[*in_buf_size] = (uint8_t) (c - 'A' + 10) << 4;
+    		} else {
+    			in_buf[*in_buf_size] ^=  (uint8_t) (c - 'A' + 10);
+				(*in_buf_size)++;
+				max_no_byte--;
+			}
+		} else if(c >= 'a' && c <= 'f') {
+			if(high_bit) {
+    			in_buf[*in_buf_size] = (uint8_t) (c - 'a' + 10) << 4;
+    		} else {
+    			in_buf[*in_buf_size] ^=  (uint8_t) (c - 'a' +10);
+				(*in_buf_size)++;
+				max_no_byte--;
+			}
+		} else {
+			return false;
+		}
+		high_bit = !high_bit;
+    }
+    return true;
+}
+
+bool read_input(char *file_name, uint8_t *&in_buf, int *in_buf_size) {
+	ifstream stream(file_name);
+
+	stream.seekg(0, ios_base::end);
+    ios_base::streampos file_size = stream.tellg();
+    cout<<endl<<"No of character in file : "<<file_size;
+    *in_buf_size = (((int)(file_size)-1)/32 +1)*16; //Every two character makes a byte.
+    cout<<endl<<"Predicted number of bytes required including padding : "<<*in_buf_size;
+    in_buf = new uint8_t[*in_buf_size];
+    if(in_buf == 0) {
+    	return false;
+    }
+
+    stream.seekg(0,ios_base::beg);
+
+    if(!parse_stream(stream, in_buf, in_buf_size)) {
+    	return false;
+    }
+    cout<<endl<<"Number of valid bytes : "<<*in_buf_size;
+
+    uint8_t padding = 15 - (((uint8_t)(*in_buf_size) - 1)%16);
+
+    for(uint8_t *i = in_buf + *in_buf_size; i < in_buf + *in_buf_size + padding; ++i) {
+    	*i = padding;
+    }
+    *in_buf_size += padding;
+
+    cout<<endl<<"Number of valid bytes after padding : "<<*in_buf_size;
+
+    cout<<endl<<"The input is : ";
+    for(int i =0; i< *in_buf_size; ++i) {
+    	cout<<HEX(in_buf[i])<<" ";
+    }
+    cout<<endl;
+
 	return true;
 }
 
-bool read_key(char *file_name, uint8_t *key_buf, int key_size) {
-	//TODO: Retreive first key_size characters from file
+bool read_key(char *file_name, uint8_t *&key_buf, int key_size) {
+	int orig_key_size = key_size;
+	key_buf = new uint8_t[key_size];
+	if(key_buf == 0) {
+    	return false;
+    }
+
+    ifstream stream(file_name);
+	if(!parse_stream(stream, key_buf, &key_size)) {
+    	return false;
+    } else if(key_size < orig_key_size) {
+    	cout<<endl<<"The provided key size "<< key_size << "is less than required "<< orig_key_size << " key size.";
+    	return false;
+    }
+    cout<<endl<<"key size "<<key_size;
+    cout<<endl<<"The key is : ";
+    for(int i =0; i< key_size; ++i) {
+    	cout<<HEX(key_buf[i])<<" ";
+    }
+    cout<<endl;
+
 	return true;
 }
 
@@ -137,8 +229,7 @@ bool write_output(ostream *stream, uint8_t *out_buf, unsigned int out_buf_size) 
 
 int main(int argc, char* argv[]) {
 	bool is_decrypt = false, is_std_output_on = false;
-	int key_size = 128;
-	unsigned int input_buf_size = 0;
+	int key_size = 16, input_buf_size = 0;
 	uint8_t *input_buf = 0, *key_buf = 0;
 
 	// help
@@ -146,6 +237,7 @@ int main(int argc, char* argv[]) {
 		display_help();
 		exit(0);
     }
+
     // version
     if(cmd_option_exists(argv, argv+argc, "-v")) {
 		cout<<VERSION<<endl;
@@ -201,13 +293,19 @@ int main(int argc, char* argv[]) {
 
 	Aes128 aes;
 
-	for (uint8_t* i = input_buf; i < input_buf + input_buf_size; i+= 128) {
+	for (int i = 0; i < input_buf_size; i+= 16) {
 		if(is_decrypt) {
-			aes.decrypt(i, key_buf, i, key_size);
+			aes.decrypt(input_buf +i, key_buf, input_buf+i, key_size*8);
 		} else {
-			aes.encrypt(i, key_buf, i, key_size);
+			aes.encrypt(input_buf +i, key_buf, input_buf+i, key_size*8);
 		}
 	}
+
+	cout<<endl<<"The output is : ";
+    for(int i =0; i< input_buf_size; ++i) {
+    	cout<<HEX(input_buf[i])<<" ";
+    }
+    cout<<endl;
 
 	// ostream *w_stream;
 	// if(is_std_output_on) {
@@ -220,7 +318,7 @@ int main(int argc, char* argv[]) {
 	// 	}
 	// }
 	// if(!write_output(w_stream, input_buf, input_buf_size)) {
-	//
+	
 	// }
 
 	return 0;
