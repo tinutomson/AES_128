@@ -1,6 +1,10 @@
-#include<iostream>
-#include<fstream>
+#include <iostream>
+#include <fstream>
 #include "aes.hpp"
+#include <algorithm>
+#include <string.h>
+
+using namespace std;
 
 void print_array(uint8_t * arr, int size) {
 	for(int i = 0; i < size; ++i) {

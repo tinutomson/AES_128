@@ -47,6 +47,13 @@ const uint8_t Aes128::invert_sbox[256] = {
     0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D
 };
 
+const uint8_t Aes128::mask[4][4] = {
+	{0xFF,0xEE,0xDD,0xCC},
+	{0xBB,0xAA,0x09,0x08},
+	{0x07,0x06,0x05,0x04},
+	{0x03,0x02,0x01,0x00}
+};
+
 uint8_t Aes128::rcon(int index) {
 	uint8_t toBe = 0x02;
 	if(index==1)
@@ -206,12 +213,24 @@ void Aes128::add_round_key(int round) {
 		}
 	}
 
+
+
 #if DEBUG_MODE_ON
 	cout<<"add_round_key()";
 	print_states();
 #endif
 
 }
+
+void Aes128::add_mask() {
+	for(int i = 0; i < 4; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			states[i][j] ^= mask[i][j];
+		}
+	}
+}
+
+
 
 void Aes128::copy_output(uint8_t *output) {
 	for (int i = 0; i < 4; ++i) {
@@ -287,19 +306,26 @@ void Aes128::mix_column() {
 void Aes128::encrypt(uint8_t *message, uint8_t *key, uint8_t *cipher,int keysize) {
 	expand_key(key, keysize);
 	initialize_state(message);
-	add_round_key(0);
 
+	add_round_key(0);
+	add_mask();
 	int round;
 	for(round = 1; round < no_of_rounds; ++round) {
 		substitute();
+		add_mask();
 		shift_row();
+		add_mask();
 		mix_column();
+		add_mask();
 		add_round_key(round);
+		add_mask();
 	}
-
 	substitute();
+	add_mask();
 	shift_row();
+	add_mask();
 	add_round_key(round);
+	add_mask();
 	copy_output(cipher);
 	clean_states();
 }
@@ -372,18 +398,25 @@ void Aes128::decrypt(uint8_t *cipher, uint8_t *key, uint8_t *message, int keysiz
 	expand_key(key, keysize);
 	initialize_state(cipher);
 
+	add_mask();
 	add_round_key(no_of_rounds);
 
 	int round;
 	for(round = no_of_rounds - 1; round > 0; --round) {
+		add_mask();
 		invert_shift_row();
+		add_mask();
 		invert_substitute();
+		add_mask();
 		add_round_key(round);
+		add_mask();
 		invert_mix_column();
 	}
-
+	add_mask();
 	invert_shift_row();
+	add_mask();
 	invert_substitute();
+	add_mask();
 	add_round_key(round);
 
 	copy_output(message);

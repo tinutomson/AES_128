@@ -12,13 +12,14 @@ using namespace std;
 #define HEX( x ) hex<<setfill('0')<<setw(2)<< int(x)
 #define DEC( x ) dec<<setw(2)<<int(x)
 
-#define state_size 4
+const int state_size =  4;
 
 class Aes128 {
 
 	private:
 	const static uint8_t sbox[256];
 	const static uint8_t invert_sbox[256];
+	const static uint8_t mask[4][4];
 	int key_size, round_keys_size, no_of_rounds;
 	uint8_t states[state_size][state_size];
 	uint8_t *round_keys;
@@ -45,7 +46,7 @@ class Aes128 {
 	void expand_key(uint8_t *key, int keysize);
 	void add_round_key(int round);
 	void copy_output(uint8_t *output);
-
+	void add_mask();
 	/* Encryption functions
 	*/
 	void substitute();
