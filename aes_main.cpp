@@ -165,9 +165,7 @@ bool read_input(char *file_name, uint8_t *&in_buf, int *in_buf_size) {
 
 	stream.seekg(0, ios_base::end);
     ios_base::streampos file_size = stream.tellg();
-    cout<<endl<<"No of character in file : "<<file_size;
     *in_buf_size = (((int)(file_size)-1)/32 +1)*16; //Every two character makes a byte.
-    cout<<endl<<"Predicted number of bytes required including padding : "<<*in_buf_size;
     in_buf = new uint8_t[*in_buf_size];
     if(in_buf == 0) {
     	return false;
@@ -178,7 +176,7 @@ bool read_input(char *file_name, uint8_t *&in_buf, int *in_buf_size) {
     if(!parse_stream(stream, in_buf, in_buf_size)) {
     	return false;
     }
-    cout<<endl<<"Number of valid bytes : "<<*in_buf_size;
+
 
     uint8_t padding = 15 - (((uint8_t)(*in_buf_size) - 1)%16);
 
@@ -186,15 +184,6 @@ bool read_input(char *file_name, uint8_t *&in_buf, int *in_buf_size) {
     	*i = padding;
     }
     *in_buf_size += padding;
-
-    cout<<endl<<"Number of valid bytes after padding : "<<*in_buf_size;
-
-    cout<<endl<<"The input is : ";
-    for(int i =0; i< *in_buf_size; ++i) {
-    	cout<<HEX(in_buf[i])<<" ";
-    }
-    cout<<endl;
-
 	return true;
 }
 
@@ -209,21 +198,18 @@ bool read_key(char *file_name, uint8_t *&key_buf, int key_size) {
 	if(!parse_stream(stream, key_buf, &key_size)) {
     	return false;
     } else if(key_size < orig_key_size) {
-    	cout<<endl<<"The provided key size "<< key_size << "is less than required "<< orig_key_size << " key size.";
     	return false;
     }
-    cout<<endl<<"key size "<<key_size;
-    cout<<endl<<"The key is : ";
-    for(int i =0; i< key_size; ++i) {
-    	cout<<HEX(key_buf[i])<<" ";
-    }
-    cout<<endl;
+
 
 	return true;
 }
 
-bool write_output(ostream *stream, uint8_t *out_buf, unsigned int out_buf_size) {
-	// TODO: write to stream.
+bool write_output(ostream &stream, uint8_t *out_buf, int out_buf_size) {
+	for(int i = 0; i < out_buf_size; ++i) {
+		stream<<HEX(out_buf[i])<<" ";
+	}
+	stream<<endl;
 	return true;
 }
 
@@ -301,25 +287,21 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	cout<<endl<<"The output is : ";
-    for(int i =0; i< input_buf_size; ++i) {
-    	cout<<HEX(input_buf[i])<<" ";
-    }
-    cout<<endl;
+	streambuf *buf;
+	ofstream of;
 
-	// ostream *w_stream;
-	// if(is_std_output_on) {
-	// 	w_stream = cout;
-	// } else {
-	// 	if(!is_file_exist(out_file_name)) {
-	// 		// open a new stream and assign
-	// 	} else {
-	// 		//Open in append mode
-	// 	}
-	// }
-	// if(!write_output(w_stream, input_buf, input_buf_size)) {
-	
-	// }
+	if(!is_std_output_on) {
+		of.open(out_file_name);
+		buf = of.rdbuf();
+	} else {
+		buf = std::cout.rdbuf();
+	}
+
+	ostream out(buf);
+
+	if(!write_output(out, input_buf, input_buf_size)) {
+		cout<<"Writing to output stream failed."<<endl;
+	}
 
 	return 0;
 }

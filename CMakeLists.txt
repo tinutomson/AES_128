@@ -10,5 +10,5 @@ set(VERSION_MINOR 1)
 set(CMAKE_CXX_FLAGS "-Wall -g")
 add_compile_options(-std=c++0x) # CMake 2.8.12 or newer
 
-file(GLOB SRCS aes.cpp aes.hpp test_aes.cpp)
+file(GLOB SRCS aes.cpp aes.hpp aes_main.cpp)
 add_executable(AES ${SRCS})

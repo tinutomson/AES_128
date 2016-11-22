@@ -11,7 +11,7 @@ In order to build the project use the following commands:
 To run the application after building on a unix machine:
 
  `./AES` with following options:
-
+```
 -h for help
 -v for version
 -t for running test cases
@@ -21,6 +21,5 @@ To run the application after building on a unix machine:
 -i for input file
 -k for key file
 -o for output file
-The program may terminated if any unrecognised options are specified
-or if required arguments are not specified.
-
+```
+The program may terminated abruptly if any unrecognised options are specified or if required arguments are not specified.
