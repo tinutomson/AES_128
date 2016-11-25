@@ -64,6 +64,7 @@ uint8_t Aes128::rcon(int index) {
 		int high_bit =(uint8_t)(toBe&0x80);
 		if(high_bit==0) {
 			toBe<<=1;
+			uint8_t dummy = toBe ^ 0x1b;
 		} else {
 			toBe<<=1;
 			toBe ^=0x1b;
@@ -124,6 +125,7 @@ void Aes128::initialize_keyparam(uint8_t *key, int keysize) {
 }
 
 void Aes128::clean_states() {
+	//ARR38-C. Guarantee that library functions do not form invalid pointers
 	memset(states, 0 , state_size*state_size);
 	memset(round_keys, 0, key_size);
 	delete[]  round_keys;
@@ -144,7 +146,8 @@ uint8_t Aes128::g_mult(uint8_t first, uint8_t second) {
 
         if (high_bit != 0)
             first ^= 0x1b;
-
+        else
+        	uint8_t dummy = first^0x1b; //dummy instruction
         second >>= 1;
     }
     return product;
@@ -308,24 +311,40 @@ void Aes128::encrypt(uint8_t *message, uint8_t *key, uint8_t *cipher,int keysize
 	initialize_state(message);
 
 	add_round_key(0);
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	int round;
 	for(round = 1; round < no_of_rounds; ++round) {
 		substitute();
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 		shift_row();
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 		mix_column();
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 		add_round_key(round);
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 	}
 	substitute();
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	shift_row();
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	add_round_key(round);
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	copy_output(cipher);
 	clean_states();
 }
@@ -396,29 +415,46 @@ void Aes128::invert_mix_column() {
 
 void Aes128::decrypt(uint8_t *cipher, uint8_t *key, uint8_t *message, int keysize) {
 	expand_key(key, keysize);
+	//DCL54-CPP. Overload allocation and deallocation functions as a pair in the same scope
 	initialize_state(cipher);
-
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	add_round_key(no_of_rounds);
 
 	int round;
 	for(round = no_of_rounds - 1; round > 0; --round) {
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 		invert_shift_row();
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 		invert_substitute();
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 		add_round_key(round);
+		#if SECURE_MODE_ON
 		add_mask();
+		#endif
 		invert_mix_column();
 	}
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	invert_shift_row();
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	invert_substitute();
+	#if SECURE_MODE_ON
 	add_mask();
+	#endif
 	add_round_key(round);
 
 	copy_output(message);
+	//DCL54-CPP. Overload allocation and deallocation functions as a pair in the same scope
 	clean_states();
 }
