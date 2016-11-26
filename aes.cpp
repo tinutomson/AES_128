@@ -47,7 +47,7 @@ const uint8_t Aes128::invert_sbox[256] = {
     0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D
 };
 
-const uint8_t Aes128::mask[4][4] = {
+const uint8_t Aes128::mask[state_size][state_size] = {
 	{0xFF,0xEE,0xDD,0xCC},
 	{0xBB,0xAA,0x09,0x08},
 	{0x07,0x06,0x05,0x04},
@@ -83,9 +83,9 @@ uint8_t Aes128::invert_sub_byte(uint8_t state) {
 
 #if DEBUG_MODE_ON
 void Aes128::print_states() {
-	for(int i = 0; i < 4; ++i) {
+	for(int i = 0; i < state_size; ++i) {
 		cout<<endl;
-		for(int j = 0; j < 4; ++j) {
+		for(int j = 0; j < state_size; ++j) {
 			cout<<HEX(states[i][j])<<" ";
 		}
 	}
@@ -94,9 +94,9 @@ void Aes128::print_states() {
 #endif
 
 void Aes128::initialize_state(uint8_t *input) {
-	for(int i = 0; i < 4; ++i) {
-		for(int j = 0; j < 4; ++j) {
-			states[i][j] = input[i + 4*j];
+	for(int i = 0; i < state_size; ++i) {
+		for(int j = 0; j < state_size; ++j) {
+			states[i][j] = input[i + state_size*j];
 		}
 	}
 
@@ -159,8 +159,8 @@ void Aes128::expand_key(uint8_t *key, int keysize) {
 
 #if DEBUG_MODE_ON
 	cout<<endl<<"key expansion"<<endl;
-	for(int j = 0; j < key_size; j = j+4) {
-		cout<<"round "<<DEC(j/4)<< "\t";
+	for(int j = 0; j < key_size; j = j+state_size) {
+		cout<<"round "<<DEC(j/state_size)<< "\t";
 		cout<<HEX(round_keys[j])<<" ";
 		cout<<HEX(round_keys[j+1]) << " ";
 		cout<<HEX(round_keys[j+2]) << " ";
@@ -168,32 +168,29 @@ void Aes128::expand_key(uint8_t *key, int keysize) {
 	}
 #endif
 
-	for(int i = key_size; i < round_keys_size; i = i+4) {
+	for(int i = key_size; i < round_keys_size; i = i+state_size) {
 
 #if DEBUG_MODE_ON
-		cout<<"round "<<DEC(i/4)<< "\t";
+		cout<<"round "<<DEC(i/state_size)<< "\t";
 #endif
 
-		if((i/4) %(key_size/4)==0) {
+		if((i/state_size) %(key_size/state_size)==0) {
 			round_keys[i] = sub_byte(round_keys[i-3]) ^ rcon(i/key_size);
 			round_keys[i+1] = sub_byte(round_keys[i-2]);
 			round_keys[i+2] = sub_byte(round_keys[i-1]);
 			round_keys[i+3] = sub_byte(round_keys[i-4]);
-		}
-		else if((key_size/4>6)&&(i/4) %(key_size/4)==4)
-		{
+		} else if((key_size/state_size>6)&&(i/state_size) %(key_size/state_size)==4) {
 			round_keys[i] = sub_byte(round_keys[i-4]);
 			round_keys[i+1] = sub_byte(round_keys[i-3]);
 			round_keys[i+2] = sub_byte(round_keys[i-2]);
 			round_keys[i+3] = sub_byte(round_keys[i-1]);
-		} 
-		else {
+		} else {
 			round_keys[i] = round_keys[i-4];
 			round_keys[i+1] = round_keys[i-3];
 			round_keys[i+2] = round_keys[i-2];
 			round_keys[i+3] = round_keys[i-1];
 		}
-		for(int j = i; j < i+4; ++j) {
+		for(int j = i; j < i+state_size; ++j) {
 			round_keys[j] ^= round_keys[j-key_size];
 
 #if DEBUG_MODE_ON
@@ -210,9 +207,9 @@ void Aes128::expand_key(uint8_t *key, int keysize) {
 }
 
 void Aes128::add_round_key(int round) {
-	for(int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			states[i][j] ^= round_keys[round*16 + (i + 4*j)];
+	for(int i = 0; i < state_size; ++i) {
+		for (int j = 0; j < state_size; ++j) {
+			states[i][j] ^= round_keys[round*16 + (i + state_size*j)];
 		}
 	}
 
@@ -226,8 +223,8 @@ void Aes128::add_round_key(int round) {
 }
 
 void Aes128::add_mask() {
-	for(int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
+	for(int i = 0; i < state_size; ++i) {
+		for (int j = 0; j < state_size; ++j) {
 			states[i][j] ^= mask[i][j];
 		}
 	}
@@ -236,9 +233,9 @@ void Aes128::add_mask() {
 
 
 void Aes128::copy_output(uint8_t *output) {
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			output[i + 4*j] = states[i][j];
+	for (int i = 0; i < state_size; ++i) {
+		for (int j = 0; j < state_size; ++j) {
+			output[i + state_size*j] = states[i][j];
 		}
 	}
 }
@@ -350,8 +347,8 @@ void Aes128::encrypt(uint8_t *message, uint8_t *key, uint8_t *cipher,int keysize
 }
 
 void Aes128::invert_substitute() {
-	for(int i = 0; i < 4; ++i) {
-		for(int j = 0; j < 4; ++j) {
+	for(int i = 0; i < state_size; ++i) {
+		for(int j = 0; j < state_size; ++j) {
 			states[i][j] = invert_sub_byte(states[i][j]);
 		}
 	}
@@ -393,8 +390,8 @@ void Aes128::invert_shift_row() {
 }
 
 void Aes128::invert_mix_column() {
-	uint8_t temp_array[4];
-	for(int j = 0; j < 4; ++j) {
+	uint8_t temp_array[state_size];
+	for(int j = 0; j < state_size; ++j) {
 		temp_array[0] = g_mult(0x0e, states[0][j]) ^ g_mult(0x0b, states[1][j]) ^ g_mult(0x0d, states[2][j]) ^ g_mult(0x09, states[3][j]);
 		temp_array[1] = g_mult(0x09, states[0][j]) ^ g_mult(0x0e, states[1][j]) ^ g_mult(0x0b, states[2][j]) ^ g_mult(0x0d, states[3][j]);
 		temp_array[2] = g_mult(0x0d, states[0][j]) ^ g_mult(0x09, states[1][j]) ^ g_mult(0x0e, states[2][j]) ^ g_mult(0x0b, states[3][j]);

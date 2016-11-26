@@ -9,18 +9,18 @@ using namespace std;
 
 #define VERSION "v0.1"
 #define DEBUG_MODE_ON 0
-#define SECURE_MODE_ON 0
+#define SECURE_MODE_ON 1
 #define HEX( x ) hex<<setfill('0')<<setw(2)<< int(x)
 #define DEC( x ) dec<<setw(2)<<int(x)
 
-const int state_size =  4;
+const static int state_size =  4;
 
 class Aes128 {
 
 	private:
 	const static uint8_t sbox[256];
 	const static uint8_t invert_sbox[256];
-	const static uint8_t mask[4][4];
+	const static uint8_t mask[state_size][state_size];
 	int key_size, round_keys_size, no_of_rounds;
 	uint8_t states[state_size][state_size];
 	uint8_t *round_keys;

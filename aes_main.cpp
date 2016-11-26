@@ -6,14 +6,14 @@
 
 using namespace std;
 
-void print_array(uint8_t * arr, int size) {
+void static print_array(uint8_t * arr, int size) {
 	//CTR50-CPP. Guarantee that container indices and iterators are within the valid range
 	for(int i = 0; i < size; ++i) {
 		cout<<HEX(arr[i])<<" ";
 	}
 }
 
-void run_test_cases() {
+void static run_test_cases() {
 	//DCL30-C. Declare objects with appropriate storage durations
 	int Nk[3] = {128, 192, 256};
     uint8_t key128[16] = {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
@@ -63,7 +63,7 @@ void run_test_cases() {
 	}
 }
 
-void display_help() {
+void static display_help() {
 	cout<<"* There are nine possible options to this program:";
 	cout<<endl<<"* -h for help";
 	cout<<endl<<"* -v for version";
@@ -79,7 +79,7 @@ void display_help() {
 	cout<<endl;
 }
 
-bool cmd_option_exists(char** begin, char** end, const std::string& option)
+bool static cmd_option_exists(char** begin, char** end, const std::string& option)
 {
     return std::find(begin, end, option) != end;
 }
@@ -94,7 +94,7 @@ char* get_cmd_option(char ** begin, char ** end, const std::string & option)
     return 0;
 }
 
-bool is_file_exist(char * file_name) {
+bool static is_file_exist(char * file_name) {
 	if(file_name && file_name[0] != '-') {
 		ifstream stream(file_name);
 		return stream.good();
@@ -102,14 +102,14 @@ bool is_file_exist(char * file_name) {
 	return false;
 }
 
-bool is_file_valid(char *file_name) {
+bool static is_file_valid(char *file_name) {
 	if(file_name && file_name[0] != '-') {
 		return true;
 	}
 	return false;
 }
 
-bool get_key_size(char* key_s, int *size) {
+bool static get_key_size(char* key_s, int *size) {
 	if(!key_s) {
 		*size = 16;
 		return true;
@@ -127,7 +127,7 @@ bool get_key_size(char* key_s, int *size) {
 	return true;
 }
 
-bool parse_stream(ifstream &stream, uint8_t *in_buf, int *in_buf_size) {
+bool static parse_stream(ifstream &stream, uint8_t *in_buf, int *in_buf_size) {
 	char c;
 	bool high_bit = true;
 	int max_no_byte = *in_buf_size;
@@ -135,7 +135,7 @@ bool parse_stream(ifstream &stream, uint8_t *in_buf, int *in_buf_size) {
     while(stream.get(c) && max_no_byte > 0) {
     	if(c == '\n' || isspace(c) || c == '\r') {
     		continue;
-    	} else if(c >= '0' && c <= '9') {
+    	} else if(c >= '0' && c <= '9') {	//ERR62-CPP. Detect errors when converting a string to a number
     		if(high_bit) {
     			in_buf[*in_buf_size] = (uint8_t) (c - '0') << 4;
     		} else {
@@ -167,14 +167,14 @@ bool parse_stream(ifstream &stream, uint8_t *in_buf, int *in_buf_size) {
     return true;
 }
 
-bool read_input(char *file_name, uint8_t *&in_buf, int *in_buf_size) {
+bool static read_input(char *file_name, uint8_t *&in_buf, int *in_buf_size) {
 	ifstream stream(file_name);
 
 	stream.seekg(0, ios_base::end);
     ios_base::streampos file_size = stream.tellg();
-    *in_buf_size = (((int)(file_size)-1)/32 +1)*16; //Every two character makes a byte.
-    in_buf = new uint8_t[*in_buf_size];
-    if(in_buf == 0) {
+    *in_buf_size = (((int)(file_size)-1)/32 +1)*16; //Not complying INT31-C. Ensure that integer conversions do not result in lost or misinterpreted data
+    in_buf = new uint8_t[*in_buf_size];	// Complying MEM35-C and MEM36-C.
+    if(in_buf == 0) {	//MEM52-CPP. Detect and handle memory allocation errors
     	return false;
     }
 
@@ -194,10 +194,10 @@ bool read_input(char *file_name, uint8_t *&in_buf, int *in_buf_size) {
 	return true;
 }
 
-bool read_key(char *file_name, uint8_t *&key_buf, int key_size) {
+bool static read_key(char *file_name, uint8_t *&key_buf, int key_size) {
 	int orig_key_size = key_size;
 	key_buf = new uint8_t[key_size];
-	if(key_buf == 0) {
+	if(key_buf == 0) {	//MEM52-CPP. Detect and handle memory allocation errors
     	return false;
     }
 
@@ -212,12 +212,24 @@ bool read_key(char *file_name, uint8_t *&key_buf, int key_size) {
 	return true;
 }
 
-bool write_output(ostream &stream, uint8_t *out_buf, int out_buf_size) {
+bool static write_output(ostream &stream, uint8_t *out_buf, int out_buf_size) {
 	for(int i = 0; i < out_buf_size; ++i) {
 		stream<<HEX(out_buf[i])<<" ";
 	}
 	stream<<endl;
 	return true;
+}
+
+void static clean_up(uint8_t *&out_buf, uint8_t *&key_buf) {
+	if(out_buf != 0) {
+		delete[] out_buf;
+		out_buf = 0;
+	}
+
+	if(key_buf != 0) {
+		delete[] key_buf;
+		key_buf = 0;
+	}
 }
 
 int main(int argc, char* argv[]) {
@@ -276,11 +288,13 @@ int main(int argc, char* argv[]) {
 
 	if(!read_input(in_file_name, input_buf, &input_buf_size)) {
 		cout<<"Unable to parse input. Check the input file."<<endl;
+		clean_up(input_buf, key_buf);
 		exit(0);
 	}
 
 	if(!read_key(key_file_name, key_buf, key_size)) {
 		cout<<"Unable to parse key. Check the key file."<<endl;
+		clean_up(input_buf, key_buf);
 		exit(0);
 	}
 
@@ -309,6 +323,8 @@ int main(int argc, char* argv[]) {
 	if(!write_output(out, input_buf, input_buf_size)) {
 		cout<<"Writing to output stream failed."<<endl;
 	}
+
+	clean_up(input_buf, key_buf);
 
 	return 0;
 }
